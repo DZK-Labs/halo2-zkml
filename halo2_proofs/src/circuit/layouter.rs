@@ -39,7 +39,7 @@ use crate::plonk::{Advice, Any, Assigned, Column, Error, Fixed, Instance, Select
 /// `Chip::Config`).
 ///
 /// [`Layouter`]: super::Layouter
-pub trait RegionLayouter<F: Field>: fmt::Debug {
+pub trait RegionLayouter<F: Field>: fmt::Debug + Send + Sync {
     /// Enables a selector at the given offset.
     fn enable_selector<'v>(
         &'v mut self,
