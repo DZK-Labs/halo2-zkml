@@ -480,7 +480,7 @@ impl<F: Field> Assignment<F> for Layout {
         r_col: Column<Any>,
         r_row: usize,
     ) -> Result<(), crate::plonk::Error> {
-        // self.equality.push((l_col, l_row, r_col, r_row));
+        self.equality.push((l_col, l_row, r_col, r_row));
         Ok(())
     }
 
