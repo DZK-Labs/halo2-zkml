@@ -377,12 +377,12 @@ impl<'r, 'a, F: Field, CS: Assignment<F> + 'a + std::marker::Send + std::marker:
     }
 
     fn constrain_equal(&mut self, left: Cell, right: Cell) -> Result<(), Error> {
-        self.layouter.cs.copy(
-            left.column,
-            *self.layouter.regions[*left.region_index] + left.row_offset,
-            right.column,
-            *self.layouter.regions[*right.region_index] + right.row_offset,
-        )?;
+        // self.layouter.cs.copy(
+        //     left.column,
+        //     *self.layouter.regions[*left.region_index] + left.row_offset,
+        //     right.column,
+        //     *self.layouter.regions[*right.region_index] + right.row_offset,
+        // )?;
 
         Ok(())
     }

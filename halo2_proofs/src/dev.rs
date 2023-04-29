@@ -542,9 +542,8 @@ impl<F: Field> Assignment<F> for MockProver<F> {
             self.k,
         );
 
-        // self.permutation
-        //     .copy(left_column, left_row, right_column, right_row)
-        Ok(())
+        self.permutation
+            .copy(left_column, left_row, right_column, right_row)
     }
 
     fn fill_from_row(
