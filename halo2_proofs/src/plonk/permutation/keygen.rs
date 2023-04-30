@@ -75,6 +75,15 @@ impl Assembly {
         let mut left_cycle = self.aux[left_column][left_row];
         let mut right_cycle = self.aux[right_column][right_row];
 
+        println!(
+            "------------------------------------- BEFORE -------------------------------------"
+        );
+        println!("left_cycle: {:?}", left_cycle);
+        println!("right_cycle: {:?}", right_cycle);
+        println!("AUX {:?}", self.aux);
+        println!("MAPPING {:?}", self.mapping);
+        println!("SIZES {:?}", self.sizes);
+
         // If left and right are in the same cycle, do nothing.
         if left_cycle == right_cycle {
             return Ok(());
@@ -98,6 +107,15 @@ impl Assembly {
         let tmp = self.mapping[left_column][left_row];
         self.mapping[left_column][left_row] = self.mapping[right_column][right_row];
         self.mapping[right_column][right_row] = tmp;
+
+        println!(
+            "------------------------------------- AFTER -------------------------------------"
+        );
+        println!("left_cycle: {:?}", left_cycle);
+        println!("right_cycle: {:?}", right_cycle);
+        println!("AUX {:?}", self.aux);
+        println!("MAPPING {:?}", self.mapping);
+        println!("SIZES {:?}", self.sizes);
 
         Ok(())
     }
