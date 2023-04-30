@@ -80,7 +80,7 @@ impl Assembly {
             return Ok(());
         }
 
-        if right_cycle.0 > left_cycle.0 && right_cycle.1 > left_cycle.1 {
+        if right_cycle.0 >= left_cycle.0 && right_cycle.1 > left_cycle.1 {
             std::mem::swap(&mut left_cycle, &mut right_cycle);
         }
 
