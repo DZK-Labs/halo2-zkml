@@ -75,23 +75,18 @@ impl Assembly {
         let mut left_cycle = self.aux[left_column][left_row];
         let mut right_cycle = self.aux[right_column][right_row];
 
-        println!(
-            "------------------------------------- BEFORE -------------------------------------"
-        );
-        println!("left_cycle: {:?}", left_cycle);
-        println!("right_cycle: {:?}", right_cycle);
-        println!("AUX {:?}", self.aux);
-        println!("MAPPING {:?}", self.mapping);
-        println!("SIZES {:?}", self.sizes);
-
         // If left and right are in the same cycle, do nothing.
         if left_cycle == right_cycle {
             return Ok(());
         }
 
-        if self.sizes[left_cycle.0][left_cycle.1] < self.sizes[right_cycle.0][right_cycle.1] {
+        if right_cycle.0 > left_cycle.0 && right_cycle.1 > left_cycle.1 {
             std::mem::swap(&mut left_cycle, &mut right_cycle);
         }
+
+        // if self.sizes[left_cycle.0][left_cycle.1] < self.sizes[right_cycle.0][right_cycle.1] {
+        //     std::mem::swap(&mut left_cycle, &mut right_cycle);
+        // }
 
         // Merge the right cycle into the left one.
         self.sizes[left_cycle.0][left_cycle.1] += self.sizes[right_cycle.0][right_cycle.1];
@@ -107,15 +102,6 @@ impl Assembly {
         let tmp = self.mapping[left_column][left_row];
         self.mapping[left_column][left_row] = self.mapping[right_column][right_row];
         self.mapping[right_column][right_row] = tmp;
-
-        println!(
-            "------------------------------------- AFTER -------------------------------------"
-        );
-        println!("left_cycle: {:?}", left_cycle);
-        println!("right_cycle: {:?}", right_cycle);
-        println!("AUX {:?}", self.aux);
-        println!("MAPPING {:?}", self.mapping);
-        println!("SIZES {:?}", self.sizes);
 
         Ok(())
     }
