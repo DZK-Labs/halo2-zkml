@@ -12,6 +12,7 @@ use ff::Field;
 use ff::FromUniformBytes;
 use group::Group;
 
+use crate::circuit::layouter::SyncDeps;
 use crate::plonk::permutation::keygen::Assembly;
 use crate::{
     circuit,
@@ -2101,3 +2102,5 @@ mod tests {
         )
     }
 }
+
+impl<F: Field> SyncDeps for MockProver<F> {}
