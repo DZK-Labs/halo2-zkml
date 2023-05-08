@@ -27,7 +27,8 @@ pub struct SimpleFloorPlanner;
 impl FloorPlanner for SimpleFloorPlanner {
     fn synthesize<
         F: Field,
-        CS: Assignment<F> + std::marker::Send + std::marker::Sync,
+        #[cfg(feature = "thread-safe-region")] CS: Assignment<F> + Send + Sync,
+        #[cfg(not(feature = "thread-safe-region"))] CS: Assignment<F>,
         C: Circuit<F>,
     >(
         cs: &mut CS,
@@ -77,8 +78,12 @@ impl<'a, F: Field, CS: Assignment<F>> SingleChipLayouter<'a, F, CS> {
     }
 }
 
-impl<'a, F: Field, CS: Assignment<F> + 'a + std::marker::Send + std::marker::Sync> Layouter<F>
-    for SingleChipLayouter<'a, F, CS>
+impl<
+        'a,
+        F: Field,
+        #[cfg(feature = "thread-safe-region")] CS: Assignment<F> + 'a + Send + Sync,
+        #[cfg(not(feature = "thread-safe-region"))] CS: Assignment<F> + 'a,
+    > Layouter<F> for SingleChipLayouter<'a, F, CS>
 {
     type Root = Self;
 
@@ -269,8 +274,13 @@ impl<'r, 'a, F: Field, CS: Assignment<F> + 'a> SingleChipLayouterRegion<'r, 'a, 
     }
 }
 
-impl<'r, 'a, F: Field, CS: Assignment<F> + 'a + std::marker::Send + std::marker::Sync>
-    RegionLayouter<F> for SingleChipLayouterRegion<'r, 'a, F, CS>
+impl<
+        'r,
+        'a,
+        F: Field,
+        #[cfg(feature = "thread-safe-region")] CS: Assignment<F> + 'a + std::marker::Send + std::marker::Sync,
+        #[cfg(not(feature = "thread-safe-region"))] CS: Assignment<F> + 'a,
+    > RegionLayouter<F> for SingleChipLayouterRegion<'r, 'a, F, CS>
 {
     fn enable_selector<'v>(
         &'v mut self,

@@ -80,13 +80,15 @@ impl Assembly {
             return Ok(());
         }
 
+        #[cfg(feature = "thread-safe-region")]
         if right_cycle.0 >= left_cycle.0 && right_cycle.1 > left_cycle.1 {
             std::mem::swap(&mut left_cycle, &mut right_cycle);
         }
 
-        // if self.sizes[left_cycle.0][left_cycle.1] < self.sizes[right_cycle.0][right_cycle.1] {
-        //     std::mem::swap(&mut left_cycle, &mut right_cycle);
-        // }
+        #[cfg(not(feature = "thread-safe-region"))]
+        if self.sizes[left_cycle.0][left_cycle.1] < self.sizes[right_cycle.0][right_cycle.1] {
+            std::mem::swap(&mut left_cycle, &mut right_cycle);
+        }
 
         // Merge the right cycle into the left one.
         self.sizes[left_cycle.0][left_cycle.1] += self.sizes[right_cycle.0][right_cycle.1];

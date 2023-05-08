@@ -731,7 +731,12 @@ pub trait FloorPlanner {
     /// - Perform any necessary setup or measurement tasks, which may involve one or more
     ///   calls to `Circuit::default().synthesize(config, &mut layouter)`.
     /// - Call `circuit.synthesize(config, &mut layouter)` exactly once.
-    fn synthesize<F: Field, CS: Assignment<F> + Send + Sync, C: Circuit<F>>(
+    fn synthesize<
+        F: Field,
+        #[cfg(feature = "thread-safe-region")] CS: Assignment<F> + Send + Sync,
+        #[cfg(not(feature = "thread-safe-region"))] CS: Assignment<F>,
+        C: Circuit<F>,
+    >(
         cs: &mut CS,
         circuit: &C,
         config: C::Config,
