@@ -1002,7 +1002,7 @@ impl<F: FromUniformBytes<64> + Ord> MockProver<F> {
                         })
                         .collect::<Vec<_>>()
                 });
-
+        let mapping = self.permutation.mapping();
         // Check that permutations preserve the original values of the cells.
         let perm_errors = {
             // Original values of columns involved in the permutation.
@@ -1020,8 +1020,7 @@ impl<F: FromUniformBytes<64> + Ord> MockProver<F> {
             };
 
             // Iterate over each column of the permutation
-            self.permutation
-                .mapping()
+            mapping
                 .iter()
                 .enumerate()
                 .flat_map(move |(column, values)| {
@@ -1363,7 +1362,7 @@ impl<F: FromUniformBytes<64> + Ord> MockProver<F> {
                         })
                         .collect::<Vec<_>>()
                 });
-
+        let mapping = self.permutation.mapping();
         // Check that permutations preserve the original values of the cells.
         let perm_errors = {
             // Original values of columns involved in the permutation.
@@ -1381,8 +1380,7 @@ impl<F: FromUniformBytes<64> + Ord> MockProver<F> {
             };
 
             // Iterate over each column of the permutation
-            self.permutation
-                .mapping()
+            mapping
                 .iter()
                 .enumerate()
                 .flat_map(move |(column, values)| {
