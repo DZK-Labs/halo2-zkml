@@ -374,35 +374,38 @@ impl Assembly {
         Ok(())
     }
 
+    fn mapping_at_idx(&self, col: usize, row: usize) -> (usize, usize) {
+        if let Some(cycle_idx) = self.aux.get(&(col, row)) {
+            let cycle = self.cycles.get(cycle_idx).unwrap();
+            let mut cycle_iter = cycle.iter();
+            loop {
+                if let Some(node) = cycle_iter.next() {
+                    if *node == (col, row) {
+                        break;
+                    }
+                }
+            }
+            // point to the next node in the cycle
+            match cycle_iter.next() {
+                Some((i, j)) => (*i, *j),
+                // wrap back around to the first element which SHOULD exist
+                None => *(cycle.iter().next().unwrap()),
+            }
+        // is a singleton
+        } else {
+            (col, row)
+        }
+    }
+
     /// Builds the mapping of the permutation argument.
     pub fn build_mapping(&self) -> Vec<Vec<(usize, usize)>> {
         let mut mapping: Vec<Vec<(usize, usize)>> = vec![];
+
         for i in 0..self.num_cols {
             // Computes [(i, 0), (i, 1), ..., (i, n - 1)]
             mapping.push(
                 (0..self.col_len)
-                    .map(|j| {
-                        if let Some(cycle_idx) = self.aux.get(&(i, j)) {
-                            let cycle = self.cycles.get(cycle_idx).unwrap();
-                            let mut cycle_iter = cycle.iter();
-                            loop {
-                                if let Some(node) = cycle_iter.next() {
-                                    if *node == (i, j) {
-                                        break;
-                                    }
-                                }
-                            }
-                            // point to the next node in the cycle
-                            match cycle_iter.next() {
-                                Some((i, j)) => (*i, *j),
-                                // wrap back around to the first element which SHOULD exist
-                                None => *(cycle.iter().next().unwrap()),
-                            }
-                        // is a singleton
-                        } else {
-                            (i, j)
-                        }
-                    })
+                    .map(|j| self.mapping_at_idx(i, j))
                     .collect(),
             );
         }
@@ -415,7 +418,6 @@ impl Assembly {
         domain: &EvaluationDomain<C::Scalar>,
         p: &Argument,
     ) -> VerifyingKey<C> {
-        let mapping = self.build_mapping();
         // Compute [omega^0, omega^1, ..., omega^{params.n - 1}]
         let mut omega_powers = vec![C::Scalar::ZERO; params.n() as usize];
         {
@@ -451,7 +453,7 @@ impl Assembly {
                 for (x, permutation_poly) in o.iter_mut().enumerate() {
                     let i = start + x;
                     for (j, p) in permutation_poly.iter_mut().enumerate() {
-                        let (permuted_i, permuted_j) = mapping[i][j];
+                        let (permuted_i, permuted_j) = self.mapping_at_idx(i, j);
                         *p = deltaomega[permuted_i][permuted_j];
                     }
                 }
@@ -478,7 +480,6 @@ impl Assembly {
         domain: &EvaluationDomain<C::Scalar>,
         p: &Argument,
     ) -> ProvingKey<C> {
-        let mapping = self.build_mapping();
         // Compute [omega^0, omega^1, ..., omega^{params.n - 1}]
         let mut omega_powers = vec![C::Scalar::ZERO; params.n() as usize];
         {
@@ -513,7 +514,7 @@ impl Assembly {
                 for (x, permutation_poly) in o.iter_mut().enumerate() {
                     let i = start + x;
                     for (j, p) in permutation_poly.iter_mut().enumerate() {
-                        let (permuted_i, permuted_j) = mapping[i][j];
+                        let (permuted_i, permuted_j) = self.mapping_at_idx(i, j);
                         *p = deltaomega[permuted_i][permuted_j];
                     }
                 }
