@@ -372,11 +372,8 @@ impl Assembly {
             }
         };
 
-        let num_updates = right_cycle_elems.len();
-        let updates: BTreeMap<(usize, usize), usize> = right_cycle_elems
-            .into_iter()
-            .zip(vec![cycle_idx; num_updates].into_iter())
-            .collect();
+        let index_updates = vec![cycle_idx; right_cycle_elems.len()].into_iter();
+        let updates = right_cycle_elems.into_iter().zip(index_updates);
 
         self.aux.extend(updates);
 
