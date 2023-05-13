@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use ff::{Field, PrimeField};
 use group::Curve;
@@ -268,7 +268,7 @@ pub struct Assembly {
     /// Columns that participate on the copy permutation argument.
     columns: Vec<Column<Any>>,
     /// Mapping of the actual copies done.
-    cycles: BTreeMap<usize, BTreeSet<(usize, usize)>>,
+    cycles: Vec<BTreeSet<(usize, usize)>>,
     /// Mapping of the actual copies done.
     aux: HashMap<(usize, usize), usize>,
     /// total length of a column
@@ -288,7 +288,7 @@ impl Assembly {
         // its own distinguished element.
         Assembly {
             columns: p.columns.clone(),
-            cycles: BTreeMap::new(),
+            cycles: Vec::new(),
             aux: HashMap::new(),
             col_len: n,
             num_cols: p.columns.len(),
@@ -329,13 +329,13 @@ impl Assembly {
 
         let left_cycle_size = match left_cycle {
             // this should unwrap safely
-            Some(i) => self.cycles.get(i).unwrap().len(),
+            Some(i) => self.cycles[*i].len(),
             None => 1,
         };
 
         let right_cycle_size = match right_cycle {
             // this should unwrap safely
-            Some(i) => self.cycles.get(i).unwrap().len(),
+            Some(i) => self.cycles[*i].len(),
             None => 1,
         };
 
@@ -347,7 +347,11 @@ impl Assembly {
 
         // extract cycle elements
         let right_cycle_elems = match right_cycle {
-            Some(i) => self.cycles.remove(i).unwrap(),
+            Some(i) => {
+                let mut entry = self.cycles[*i].clone();
+                self.cycles[*i] = BTreeSet::new();
+                entry
+            }
             None => [(right_column, right_row)].into(),
         };
 
@@ -356,17 +360,16 @@ impl Assembly {
         // merge cycles
         let cycle_idx = match left_cycle {
             Some(i) => {
-                let mut entry = self.cycles.get(i).unwrap().clone();
+                let entry = &mut self.cycles[*i];
                 entry.extend(right_cycle_elems.clone());
-                self.cycles.insert(*i, entry.clone());
                 *i
             }
             // if they were singletons -- create a new cycle entry
             None => {
-                let cycle_idx = self.cycles.keys().last().unwrap_or(&0) + 1;
                 let mut set: BTreeSet<(usize, usize)> = [(left_column, left_row)].into();
                 set.extend(right_cycle_elems.iter());
-                self.cycles.insert(cycle_idx, set);
+                self.cycles.push(set);
+                let cycle_idx = self.cycles.len() - 1;
                 self.aux.insert((left_column, left_row), cycle_idx);
                 cycle_idx
             }
@@ -382,7 +385,7 @@ impl Assembly {
 
     fn mapping_at_idx(&self, col: usize, row: usize) -> (usize, usize) {
         if let Some(cycle_idx) = self.aux.get(&(col, row)) {
-            let cycle = self.cycles.get(cycle_idx).unwrap();
+            let cycle = &self.cycles[*cycle_idx];
             let mut cycle_iter = cycle.range((
                 std::ops::Bound::Excluded((col, row)),
                 std::ops::Bound::Included(cycle.last().unwrap().clone()),
