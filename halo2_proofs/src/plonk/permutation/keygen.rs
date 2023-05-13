@@ -2,6 +2,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ff::{Field, PrimeField};
 use group::Curve;
+use rayon::prelude::{
+    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
+};
 
 use super::{Argument, ProvingKey, VerifyingKey};
 use crate::{
@@ -251,8 +254,10 @@ impl Assembly {
     }
 
     /// Returns mappings of the copies.
-    pub fn mapping(&self) -> &[Vec<(usize, usize)>] {
-        &self.mapping
+    pub fn mapping(
+        &self,
+    ) -> impl Iterator<Item = impl IndexedParallelIterator<Item = &(usize, usize)>> {
+        self.mapping.iter().map(|c| c.par_iter())
     }
 }
 
@@ -377,14 +382,10 @@ impl Assembly {
     fn mapping_at_idx(&self, col: usize, row: usize) -> (usize, usize) {
         if let Some(cycle_idx) = self.aux.get(&(col, row)) {
             let cycle = self.cycles.get(cycle_idx).unwrap();
-            let mut cycle_iter = cycle.iter();
-            loop {
-                if let Some(node) = cycle_iter.next() {
-                    if *node == (col, row) {
-                        break;
-                    }
-                }
-            }
+            let mut cycle_iter = cycle.range((
+                std::ops::Bound::Excluded((col, row)),
+                std::ops::Bound::Included(cycle.last().unwrap().clone()),
+            ));
             // point to the next node in the cycle
             match cycle_iter.next() {
                 Some((i, j)) => (*i, *j),
@@ -395,21 +396,6 @@ impl Assembly {
         } else {
             (col, row)
         }
-    }
-
-    /// Builds the mapping of the permutation argument.
-    pub fn build_mapping(&self) -> Vec<Vec<(usize, usize)>> {
-        let mut mapping: Vec<Vec<(usize, usize)>> = vec![];
-
-        for i in 0..self.num_cols {
-            // Computes [(i, 0), (i, 1), ..., (i, n - 1)]
-            mapping.push(
-                (0..self.col_len)
-                    .map(|j| self.mapping_at_idx(i, j))
-                    .collect(),
-            );
-        }
-        mapping
     }
 
     pub(crate) fn build_vk<'params, C: CurveAffine, P: Params<'params, C>>(
@@ -556,7 +542,13 @@ impl Assembly {
     }
 
     /// Returns mappings of the copies.
-    pub fn mapping(&self) -> Vec<Vec<(usize, usize)>> {
-        self.build_mapping()
+    pub fn mapping<'a>(
+        &'a self,
+    ) -> impl Iterator<Item = impl IndexedParallelIterator<Item = (usize, usize)> + 'a> + 'a {
+        (0..self.num_cols).map(move |i| {
+            (0..self.col_len)
+                .into_par_iter()
+                .map(move |j| self.mapping_at_idx(i, j))
+        })
     }
 }

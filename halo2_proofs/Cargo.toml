@@ -88,3 +88,8 @@ bench = false
 [[example]]
 name = "circuit-layout"
 required-features = ["dev-graph"]
+
+
+[[example]]
+name = "vector-mul-parallel-synth"
+required-features = ["thread-safe-region"]

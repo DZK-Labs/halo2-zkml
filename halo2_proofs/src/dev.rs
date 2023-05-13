@@ -1020,13 +1020,12 @@ impl<F: FromUniformBytes<64> + Ord> MockProver<F> {
             };
 
             // Iterate over each column of the permutation
-            mapping
-                .iter()
-                .enumerate()
-                .flat_map(move |(column, values)| {
-                    // Iterate over each row of the column to check that the cell's
-                    // value is preserved by the mapping.
-                    values.iter().enumerate().filter_map(move |(row, cell)| {
+            mapping.enumerate().flat_map(move |(column, values)| {
+                // Iterate over each row of the column to check that the cell's
+                // value is preserved by the mapping.
+                values
+                    .enumerate()
+                    .filter_map(move |(row, cell)| {
                         let original_cell = original(column, row);
                         let permuted_cell = original(cell.0, cell.1);
                         if original_cell == permuted_cell {
@@ -1044,7 +1043,8 @@ impl<F: FromUniformBytes<64> + Ord> MockProver<F> {
                             })
                         }
                     })
-                })
+                    .collect::<Vec<_>>()
+            })
         };
 
         let mut errors: Vec<_> = iter::empty()
@@ -1380,35 +1380,31 @@ impl<F: FromUniformBytes<64> + Ord> MockProver<F> {
             };
 
             // Iterate over each column of the permutation
-            mapping
-                .iter()
-                .enumerate()
-                .flat_map(move |(column, values)| {
-                    // Iterate over each row of the column to check that the cell's
-                    // value is preserved by the mapping.
-                    values
-                        .par_iter()
-                        .enumerate()
-                        .filter_map(move |(row, cell)| {
-                            let original_cell = original(column, row);
-                            let permuted_cell = original(cell.0, cell.1);
-                            if original_cell == permuted_cell {
-                                None
-                            } else {
-                                let columns = self.cs.permutation.get_columns();
-                                let column = columns.get(column).unwrap();
-                                Some(VerifyFailure::Permutation {
-                                    column: (*column).into(),
-                                    location: FailureLocation::find(
-                                        &self.regions,
-                                        row,
-                                        Some(column).into_iter().cloned().collect(),
-                                    ),
-                                })
-                            }
-                        })
-                        .collect::<Vec<_>>()
-                })
+            mapping.enumerate().flat_map(move |(column, values)| {
+                // Iterate over each row of the column to check that the cell's
+                // value is preserved by the mapping.
+                values
+                    .enumerate()
+                    .filter_map(move |(row, cell)| {
+                        let original_cell = original(column, row);
+                        let permuted_cell = original(cell.0, cell.1);
+                        if original_cell == permuted_cell {
+                            None
+                        } else {
+                            let columns = self.cs.permutation.get_columns();
+                            let column = columns.get(column).unwrap();
+                            Some(VerifyFailure::Permutation {
+                                column: (*column).into(),
+                                location: FailureLocation::find(
+                                    &self.regions,
+                                    row,
+                                    Some(column).into_iter().cloned().collect(),
+                                ),
+                            })
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            })
         };
 
         let mut errors: Vec<_> = iter::empty()
