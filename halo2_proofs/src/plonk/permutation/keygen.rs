@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use ff::{Field, PrimeField};
 use group::Curve;
@@ -270,7 +270,7 @@ pub struct Assembly {
     /// Mapping of the actual copies done.
     cycles: BTreeMap<usize, BTreeSet<(usize, usize)>>,
     /// Mapping of the actual copies done.
-    aux: BTreeMap<(usize, usize), usize>,
+    aux: HashMap<(usize, usize), usize>,
     /// total length of a column
     col_len: usize,
     /// number of columns
@@ -289,7 +289,7 @@ impl Assembly {
         Assembly {
             columns: p.columns.clone(),
             cycles: BTreeMap::new(),
-            aux: BTreeMap::new(),
+            aux: HashMap::new(),
             col_len: n,
             num_cols: p.columns.len(),
         }
@@ -367,14 +367,18 @@ impl Assembly {
                 let mut set: BTreeSet<(usize, usize)> = [(left_column, left_row)].into();
                 set.extend(right_cycle_elems.iter());
                 self.cycles.insert(cycle_idx, set);
+                self.aux.insert((left_column, left_row), cycle_idx);
                 cycle_idx
             }
         };
 
-        self.aux.insert((left_column, left_row), cycle_idx);
-        for elem in &right_cycle_elems {
-            self.aux.insert(*elem, cycle_idx);
-        }
+        let num_updates = right_cycle_elems.len();
+        let updates: BTreeMap<(usize, usize), usize> = right_cycle_elems
+            .into_iter()
+            .zip(vec![cycle_idx; num_updates].into_iter())
+            .collect();
+
+        self.aux.extend(updates);
 
         Ok(())
     }
