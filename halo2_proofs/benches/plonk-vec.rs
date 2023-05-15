@@ -25,6 +25,8 @@ use std::marker::PhantomData;
 
 use criterion::{BenchmarkId, Criterion};
 
+const NUM_ELEMS: usize = 1000000;
+
 fn criterion_benchmark(c: &mut Criterion) {
     /// This represents an advice column at a certain row in the ConstraintSystem
     #[derive(Copy, Clone, Debug)]
@@ -61,7 +63,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     }
 
     #[derive(Clone)]
-    struct MyCircuit<F: Field> {
+    struct MyCircuit<F: Field, const C: usize> {
         a: Vec<Value<F>>,
         k: u32,
     }
@@ -159,48 +161,49 @@ fn criterion_benchmark(c: &mut Criterion) {
                     let values = f();
                     values
                         .iter()
-                        .map(|value| {
+                        .enumerate()
+                        .map(|(offset, value)| {
                             let lhs = region.assign_advice(
                                 || "lhs",
                                 self.config.a,
-                                0,
+                                offset,
                                 || value.map(|v| v.0),
                             )?;
                             let rhs = region.assign_advice(
                                 || "rhs",
                                 self.config.b,
-                                0,
+                                offset,
                                 || value.map(|v| v.1),
                             )?;
                             let out = region.assign_advice(
                                 || "out",
                                 self.config.c,
-                                0,
+                                offset,
                                 || value.map(|v| v.2),
                             )?;
 
                             region.assign_fixed(
                                 || "a",
                                 self.config.sa,
-                                0,
+                                offset,
                                 || Value::known(FF::ONE),
                             )?;
                             region.assign_fixed(
                                 || "b",
                                 self.config.sb,
-                                0,
+                                offset,
                                 || Value::known(FF::ONE),
                             )?;
                             region.assign_fixed(
                                 || "c",
                                 self.config.sc,
-                                0,
+                                offset,
                                 || Value::known(FF::ONE),
                             )?;
                             region.assign_fixed(
                                 || "a * b",
                                 self.config.sm,
-                                0,
+                                offset,
                                 || Value::known(FF::ZERO),
                             )?;
                             Ok((lhs.cell(), rhs.cell(), out.cell()))
@@ -219,7 +222,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         }
     }
 
-    impl<F: Field> Circuit<F> for MyCircuit<F> {
+    impl<F: Field, const C: usize> Circuit<F> for MyCircuit<F, C> {
         type Config = PlonkConfig;
         type FloorPlanner = SimpleFloorPlanner;
         #[cfg(feature = "circuit-params")]
@@ -227,7 +230,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
         fn without_witnesses(&self) -> Self {
             Self {
-                a: vec![Value::unknown(); 10000],
+                a: vec![Value::unknown(); C],
                 k: self.k,
             }
         }
@@ -314,8 +317,8 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     fn keygen(k: u32) -> (ParamsIPA<EqAffine>, ProvingKey<EqAffine>) {
         let params: ParamsIPA<EqAffine> = ParamsIPA::new(k);
-        let empty_circuit: MyCircuit<Fp> = MyCircuit {
-            a: vec![Value::unknown(); 10000],
+        let empty_circuit: MyCircuit<Fp, NUM_ELEMS> = MyCircuit {
+            a: vec![Value::unknown(); NUM_ELEMS],
             k,
         };
         let vk = keygen_vk(&params, &empty_circuit).expect("keygen_vk should not fail");
@@ -326,8 +329,8 @@ fn criterion_benchmark(c: &mut Criterion) {
     fn prover(k: u32, params: &ParamsIPA<EqAffine>, pk: &ProvingKey<EqAffine>) -> Vec<u8> {
         let rng = OsRng;
 
-        let circuit: MyCircuit<Fp> = MyCircuit {
-            a: vec![Value::known(Fp::random(rng)); 10000],
+        let circuit: MyCircuit<Fp, NUM_ELEMS> = MyCircuit {
+            a: vec![Value::known(Fp::random(rng)); NUM_ELEMS],
             k,
         };
 
@@ -350,7 +353,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         assert!(verify_proof(params, vk, strategy, &[&[]], &mut transcript).is_ok());
     }
 
-    let k_range = 8..=16;
+    let k_range = 20..=23;
 
     let mut keygen_group = c.benchmark_group("plonk-keygen");
     keygen_group.sample_size(10);

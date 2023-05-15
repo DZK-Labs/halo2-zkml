@@ -26,6 +26,8 @@ use std::marker::PhantomData;
 
 use criterion::{BenchmarkId, Criterion};
 
+const NUM_ELEMS: usize = 1000000;
+
 fn criterion_benchmark(c: &mut Criterion) {
     /// This represents an advice column at a certain row in the ConstraintSystem
     #[derive(Copy, Clone, Debug)]
@@ -234,7 +236,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
         fn without_witnesses(&self) -> Self {
             Self {
-                a: vec![Value::unknown(); 10000],
+                a: vec![Value::unknown(); NUM_ELEMS],
                 k: self.k,
             }
         }
@@ -322,7 +324,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     fn keygen(k: u32) -> (ParamsIPA<EqAffine>, ProvingKey<EqAffine>) {
         let params: ParamsIPA<EqAffine> = ParamsIPA::new(k);
         let empty_circuit: MyCircuit<Fp> = MyCircuit {
-            a: vec![Value::unknown(); 10000],
+            a: vec![Value::unknown(); NUM_ELEMS],
             k,
         };
         let vk = keygen_vk(&params, &empty_circuit).expect("keygen_vk should not fail");
@@ -334,7 +336,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         let rng = OsRng;
 
         let circuit: MyCircuit<Fp> = MyCircuit {
-            a: vec![Value::known(Fp::random(rng)); 10000],
+            a: vec![Value::known(Fp::random(rng)); NUM_ELEMS],
             k,
         };
 
@@ -357,7 +359,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         assert!(verify_proof(params, vk, strategy, &[&[]], &mut transcript).is_ok());
     }
 
-    let k_range = 8..=16;
+    let k_range = 20..=23;
 
     let mut keygen_group = c.benchmark_group("plonk-keygen");
     keygen_group.sample_size(10);
