@@ -40,6 +40,15 @@ name = "plonk"
 harness = false
 
 [[bench]]
+name = "plonk-vec"
+harness = false
+
+[[bench]]
+name = "plonk-vec-parallel-synth"
+harness = false
+required-features = ["thread-safe-region"]
+
+[[bench]]
 name = "dev_lookup"
 harness = false
 

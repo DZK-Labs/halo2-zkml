@@ -348,7 +348,7 @@ impl Assembly {
         // extract cycle elements
         let right_cycle_elems = match right_cycle {
             Some(i) => {
-                let mut entry = self.cycles[*i].clone();
+                let entry = self.cycles[*i].clone();
                 self.cycles[*i] = BTreeSet::new();
                 entry
             }
@@ -366,8 +366,8 @@ impl Assembly {
             }
             // if they were singletons -- create a new cycle entry
             None => {
-                let mut set: BTreeSet<(usize, usize)> = [(left_column, left_row)].into();
-                set.extend(right_cycle_elems.iter());
+                let mut set: BTreeSet<(usize, usize)> = right_cycle_elems.clone();
+                set.insert((left_column, left_row));
                 self.cycles.push(set);
                 let cycle_idx = self.cycles.len() - 1;
                 self.aux.insert((left_column, left_row), cycle_idx);
@@ -388,7 +388,7 @@ impl Assembly {
             let cycle = &self.cycles[*cycle_idx];
             let mut cycle_iter = cycle.range((
                 std::ops::Bound::Excluded((col, row)),
-                std::ops::Bound::Included(cycle.last().unwrap().clone()),
+                std::ops::Bound::Unbounded,
             ));
             // point to the next node in the cycle
             match cycle_iter.next() {
