@@ -546,9 +546,9 @@ impl Assembly {
     }
 
     /// Returns mappings of the copies.
-    pub fn mapping<'a>(
-        &'a self,
-    ) -> impl Iterator<Item = impl IndexedParallelIterator<Item = (usize, usize)> + 'a> {
+    pub fn mapping(
+        &self,
+    ) -> impl Iterator<Item = impl IndexedParallelIterator<Item = (usize, usize)> + '_> {
         (0..self.num_cols).map(move |i| {
             (0..self.col_len)
                 .into_par_iter()
