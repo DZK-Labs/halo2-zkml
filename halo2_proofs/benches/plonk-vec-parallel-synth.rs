@@ -8,7 +8,7 @@ use halo2_proofs::poly::{commitment::ParamsProver, Rotation};
 use halo2_proofs::transcript::{Blake2bRead, Blake2bWrite, Challenge255};
 use halo2curves::pasta::{EqAffine, Fp};
 use rand_core::OsRng;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 use halo2_proofs::{
     poly::{
@@ -26,7 +26,7 @@ use std::marker::PhantomData;
 
 use criterion::{BenchmarkId, Criterion};
 
-const NUM_ELEMS: usize = 1000000;
+const NUM_ELEMS: usize = 10000;
 
 fn criterion_benchmark(c: &mut Criterion) {
     /// This represents an advice column at a certain row in the ConstraintSystem
@@ -100,49 +100,50 @@ fn criterion_benchmark(c: &mut Criterion) {
                         std::sync::Arc::new(std::sync::Mutex::new(&mut region));
                     values
                         .par_iter()
-                        .map(|value| {
+                        .enumerate()
+                        .map(|(offset, value)| {
                             let mut region = thread_safe_region.lock().unwrap();
                             let lhs = region.assign_advice(
                                 || "lhs",
                                 self.config.a,
-                                0,
+                                offset,
                                 || value.map(|v| v.0),
                             )?;
                             let rhs = region.assign_advice(
                                 || "rhs",
                                 self.config.b,
-                                0,
+                                offset,
                                 || value.map(|v| v.1),
                             )?;
                             let out = region.assign_advice(
                                 || "out",
                                 self.config.c,
-                                0,
+                                offset,
                                 || value.map(|v| v.2),
                             )?;
 
                             region.assign_fixed(
                                 || "a",
                                 self.config.sa,
-                                0,
+                                offset,
                                 || Value::known(FF::ZERO),
                             )?;
                             region.assign_fixed(
                                 || "b",
                                 self.config.sb,
-                                0,
+                                offset,
                                 || Value::known(FF::ZERO),
                             )?;
                             region.assign_fixed(
                                 || "c",
                                 self.config.sc,
-                                0,
+                                offset,
                                 || Value::known(FF::ONE),
                             )?;
                             region.assign_fixed(
                                 || "a * b",
                                 self.config.sm,
-                                0,
+                                offset,
                                 || Value::known(FF::ONE),
                             )?;
                             Ok((lhs.cell(), rhs.cell(), out.cell()))
@@ -167,49 +168,50 @@ fn criterion_benchmark(c: &mut Criterion) {
                         std::sync::Arc::new(std::sync::Mutex::new(&mut region));
                     values
                         .par_iter()
-                        .map(|value| {
+                        .enumerate()
+                        .map(|(offset, value)| {
                             let mut region = thread_safe_region.lock().unwrap();
                             let lhs = region.assign_advice(
                                 || "lhs",
                                 self.config.a,
-                                0,
+                                offset,
                                 || value.map(|v| v.0),
                             )?;
                             let rhs = region.assign_advice(
                                 || "rhs",
                                 self.config.b,
-                                0,
+                                offset,
                                 || value.map(|v| v.1),
                             )?;
                             let out = region.assign_advice(
                                 || "out",
                                 self.config.c,
-                                0,
+                                offset,
                                 || value.map(|v| v.2),
                             )?;
 
                             region.assign_fixed(
                                 || "a",
                                 self.config.sa,
-                                0,
+                                offset,
                                 || Value::known(FF::ONE),
                             )?;
                             region.assign_fixed(
                                 || "b",
                                 self.config.sb,
-                                0,
+                                offset,
                                 || Value::known(FF::ONE),
                             )?;
                             region.assign_fixed(
                                 || "c",
                                 self.config.sc,
-                                0,
+                                offset,
                                 || Value::known(FF::ONE),
                             )?;
                             region.assign_fixed(
                                 || "a * b",
                                 self.config.sm,
-                                0,
+                                offset,
                                 || Value::known(FF::ZERO),
                             )?;
                             Ok((lhs.cell(), rhs.cell(), out.cell()))
@@ -288,33 +290,29 @@ fn criterion_benchmark(c: &mut Criterion) {
         ) -> Result<(), Error> {
             let cs = StandardPlonk::new(config);
 
-            for _ in 0..((1 << (self.k - 1)) - 3) {
-                let a: Vec<Value<Assigned<_>>> = self.a.iter().map(|v| (*v).into()).collect();
-                let mut a_squared = vec![Value::unknown(); self.a.len()];
-                let cells_0 = cs.raw_multiply(&mut layouter, || {
-                    a_squared = a.iter().map(|v| v.square()).collect();
-                    a.iter()
-                        .zip(&a_squared)
-                        .map(|(a, a_squared)| {
-                            a.zip(*a_squared).map(|(a, a_squared)| (a, a, a_squared))
-                        })
-                        .collect()
-                })?;
-                let cells_1 = cs.raw_add(&mut layouter, || {
-                    a_squared = a.iter().map(|v| v.square()).collect();
-                    a.iter()
-                        .zip(&a_squared)
-                        .map(|(a, a_squared)| {
-                            a.zip(*a_squared)
-                                .map(|(a, a_squared)| (a, a_squared, a_squared + a))
-                        })
-                        .collect()
-                })?;
-                for ((a0, b0, c0), (a1, b1, _)) in cells_0.into_iter().zip(cells_1) {
-                    cs.copy(&mut layouter, a0, b0)?;
-                    cs.copy(&mut layouter, a1, b1)?;
-                    cs.copy(&mut layouter, b0, c0)?;
-                }
+            let a: Vec<Value<Assigned<_>>> = self.a.iter().map(|v| (*v).into()).collect();
+            let mut a_squared = vec![Value::unknown(); self.a.len()];
+            let cells_0 = cs.raw_multiply(&mut layouter, || {
+                a_squared = a.iter().map(|v| v.square()).collect();
+                a.iter()
+                    .zip(&a_squared)
+                    .map(|(a, a_squared)| a.zip(*a_squared).map(|(a, a_squared)| (a, a, a_squared)))
+                    .collect()
+            })?;
+            let cells_1 = cs.raw_add(&mut layouter, || {
+                a.iter()
+                    .zip(&a_squared)
+                    .map(|(a, a_squared)| {
+                        let fin = a_squared + a;
+                        a.zip(*a_squared)
+                            .zip(fin)
+                            .map(|((a, a_squared), fin)| (a, a_squared, fin))
+                    })
+                    .collect()
+            })?;
+            for ((a0, _b0, c0), (a1, b1, _)) in cells_0.into_iter().zip(cells_1) {
+                cs.copy(&mut layouter, a0, a1)?;
+                cs.copy(&mut layouter, b1, c0)?;
             }
 
             Ok(())
@@ -359,7 +357,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         assert!(verify_proof(params, vk, strategy, &[&[]], &mut transcript).is_ok());
     }
 
-    let k_range = 21..=23;
+    let k_range = 15..=17;
 
     let mut keygen_group = c.benchmark_group("plonk-keygen");
     keygen_group.sample_size(10);
