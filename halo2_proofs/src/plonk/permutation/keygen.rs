@@ -256,8 +256,8 @@ impl Assembly {
     /// Returns mappings of the copies.
     pub fn mapping(
         &self,
-    ) -> impl Iterator<Item = impl IndexedParallelIterator<Item = &(usize, usize)>> {
-        self.mapping.iter().map(|c| c.par_iter())
+    ) -> impl Iterator<Item = impl IndexedParallelIterator<Item = (usize, usize)> + '_> {
+        self.mapping.iter().map(|c| c.par_iter().copied())
     }
 }
 
