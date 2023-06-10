@@ -293,7 +293,21 @@ where
         let bases = &self.g_lagrange;
         let size = scalars.len();
         assert!(bases.len() >= size);
-        best_multiexp(&scalars, &bases[0..size])
+
+        println!("commit lagrange");
+        if E::Scalar::MODULUS == "0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001" {
+            println!("commit lagrange in cuda");
+            let res = unsafe{
+                sppark_msm::multi_scalar_mult_halo2(
+                    std::mem::transmute::<&[_], &[halo2curves::bn256::G1Affine]>(&bases[0..size]),
+                    std::mem::transmute::<&[_], &[halo2curves::bn256::Fr]>(&scalars))
+            };
+            unsafe {
+                std::mem::transmute_copy::<_, E::G1>(&res)
+            }
+        } else {
+            best_multiexp(&scalars, &bases[0..size])
+        }
     }
 
     /// Writes params to a buffer.

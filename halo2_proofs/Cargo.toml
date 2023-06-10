@@ -54,6 +54,7 @@ ff = "0.13"
 group = "0.13"
 halo2curves = { git = 'https://github.com/privacy-scaling-explorations/halo2curves', tag = "0.3.2" }
 rand_core = { version = "0.6", default-features = false }
+sppark-msm = { git = "https://github.com/DZK-Labs/sppark-halo2" }
 tracing = "0.1"
 blake2b_simd = "1"
 sha3 = "0.9.1"
